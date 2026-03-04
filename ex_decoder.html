@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive ATEX / IECEx Decoder</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6; 
+            color: #333333; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #ffffff; 
+            border: 1px solid #dcdcdc;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #d32f2f; 
+            margin-top: 0;
+        }
+
+        .display-panel {
+            background-color: #fffde7; 
+            border: 2px dashed #fbc02d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            min-height: 50px;
+        }
+
+        .mark-segment {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #d32f2f;
+            position: relative;
+            cursor: help;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .mark-segment:hover {
+            background-color: rgba(251, 192, 45, 0.3);
+        }
+
+        /* Tooltip styling */
+        .mark-segment::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333333;
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.9rem;
+            font-weight: normal;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, bottom 0.3s;
+            pointer-events: none;
+            z-index: 10;
+            border: 1px solid #fbc02d;
+        }
+
+        .mark-segment:hover::after {
+            opacity: 1;
+            visibility: visible;
+            bottom: 120%;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .action-btn {
+            padding: 10px 25px;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        #copyBtn { background-color: #d32f2f; }
+        #copyBtn:hover { background-color: #b71c1c; }
+        #copyBtn.success { background-color: #388e3c; } /* Green on success */
+
+        #resetBtn { background-color: #555555; }
+        #resetBtn:hover { background-color: #333333; }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555555;
+            font-size: 0.9rem;
+        }
+
+        select {
+            background-color: #ffffff;
+            color: #333333;
+            border: 1px solid #cccccc;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>EX Marking Decoder</h1>
+    
+    <div class="display-panel" id="displayPanel">
+        </div>
+
+    <div class="button-group">
+        <button id="copyBtn" class="action-btn">Copy EX String</button>
+        <button id="resetBtn" class="action-btn">Reset</button>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="envSelect">Environment</label>
+            <select id="envSelect">
+                <option value="gas">Gas</option>
+                <option value="dust">Dust</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="equipGroupSelect">Equipment Group</label>
+            <select id="equipGroupSelect"></select>
+        </div>
+        <div class="control-group">
+            <label for="catSelect">Category & Zone</label>
+            <select id="catSelect"></select>
+        </div>
+        <div class="control-group">
+            <label for="protSelect">Main Protection Type</label>
+            <select id="protSelect"></select>
+        </div>
+        <div class="control-group">
+            <label for="subprotSelect">Protection Subgroup</label>
+            <select id="subprotSelect"></select>
+        </div>
+        <div class="control-group">
+            <label for="groupSelect">Substance Group</label>
+            <select id="groupSelect"></select>
+        </div>
+        <div class="control-group">
+            <label for="tempSelect">Temp Class</label>
+            <select id="tempSelect"></select>
+        </div>
+        <div class="control-group">
+            <label for="eplSelect">EPL</label>
+            <select id="eplSelect"></select>
+        </div>
+    </div>
+</div>
+
+<script>
+    const data = {
+        equipmentGroups: [
+            { val: "II", text: "Group II (Surface Industries)" },
+            { val: "I", text: "Group I (Mines susceptible to firedamp)" }
+        ],
+        miningCategories: [
+            { val: "M1", text: "Category M1 (Very High Protection - Mining)" },
+            { val: "M2", text: "Category M2 (High Protection - Mining)" }
+        ],
+        gas: {
+            categories: [
+                { val: "1G", text: "Zone 0 (Very High Protection)" },
+                { val: "2G", text: "Zone 1 (High Protection)" },
+                { val: "3G", text: "Zone 2 (Normal Protection)" }
+            ],
+            protections: {
+                "Ex d (Flameproof)": [
+                    { val: "Ex db", text: "Flameproof Enclosure (High - Zone 1)" },
+                    { val: "Ex dc", text: "Flameproof Enclosure (Enhanced - Zone 2)" }
+                ],
+                "Ex e (Increased Safety)": [
+                    { val: "Ex eb", text: "Increased Safety (High - Zone 1)" },
+                    { val: "Ex ec", text: "Increased Safety (Enhanced - Zone 2)" }
+                ],
+                "Ex i (Intrinsic Safety)": [
+                    { val: "Ex ia", text: "Intrinsic Safety (Very High - Zone 0)" },
+                    { val: "Ex ib", text: "Intrinsic Safety (High - Zone 1)" },
+                    { val: "Ex ic", text: "Intrinsic Safety (Enhanced - Zone 2)" }
+                ],
+                "Ex p (Pressurized)": [
+                    { val: "Ex pxb", text: "Pressurized Enclosure (Reduces Zone 1 to Safe Area)" },
+                    { val: "Ex pyb", text: "Pressurized Enclosure (Reduces Zone 1 to Zone 2)" },
+                    { val: "Ex pzc", text: "Pressurized Enclosure (Reduces Zone 2 to Safe Area)" }
+                ],
+                "Ex m (Encapsulation)": [
+                    { val: "Ex ma", text: "Encapsulation (Very High - Zone 0)" },
+                    { val: "Ex mb", text: "Encapsulation (High - Zone 1)" },
+                    { val: "Ex mc", text: "Encapsulation (Enhanced - Zone 2)" }
+                ],
+                "Ex q (Powder Filling)": [
+                    { val: "Ex q", text: "Powder Filling (High - Zone 1)" }
+                ],
+                "Ex o (Oil Immersion)": [
+                    { val: "Ex ob", text: "Oil Immersion (High - Zone 1)" },
+                    { val: "Ex oc", text: "Oil Immersion (Enhanced - Zone 2)" }
+                ],
+                "Ex n (Type n)": [
+                    { val: "Ex nA", text: "Non-Sparking (Enhanced - Zone 2)" },
+                    { val: "Ex nC", text: "Enclosed/Sealed Devices (Enhanced - Zone 2)" },
+                    { val: "Ex nR", text: "Restricted Breathing (Enhanced - Zone 2)" }
+                ],
+                "Ex op (Optical)": [
+                    { val: "Ex op is", text: "Inherently Safe Optical (Very High - Zone 0)" },
+                    { val: "Ex op pr", text: "Protected Optical (High - Zone 1)" },
+                    { val: "Ex op sh", text: "Optical Interlock (High - Zone 1)" }
+                ],
+                "Ex c (Constructional Safety)": [
+                    { val: "Ex c", text: "Constructional Safety (Non-Electrical)" }
+                ],
+                "Ex b (Control of Ignition)": [
+                    { val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }
+                ],
+                "Ex k (Liquid Immersion)": [
+                    { val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }
+                ],
+                "Ex fr (Flow Restricting)": [
+                    { val: "Ex fr", text: "Flow Restricting Enclosure (Non-Electrical)" }
+                ],
+                "Ex h (Mechanical Standard)": [
+                    { val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }
+                ]
+            },
+            groups: [
+                { val: "IIA", text: "Propane / Typical Gases" },
+                { val: "IIB", text: "Ethylene" },
+                { val: "IIC", text: "Acetylene & Hydrogen" }
+            ],
+            temps: [
+                { val: "T1", text: "Max Surface Temp: 450°C" },
+                { val: "T2", text: "Max Surface Temp: 300°C" },
+                { val: "T3", text: "Max Surface Temp: 200°C" },
+                { val: "T4", text: "Max Surface Temp: 135°C" },
+                { val: "T5", text: "Max Surface Temp: 100°C" },
+                { val: "T6", text: "Max Surface Temp: 85°C" }
+            ],
+            epls: [
+                { val: "Ga", text: "EPL Ga: Very High Protection (Zone 0)" },
+                { val: "Gb", text: "EPL Gb: High Protection (Zone 1)" },
+                { val: "Gc", text: "EPL Gc: Enhanced Protection (Zone 2)" }
+            ]
+        },
+        dust: {
+            categories: [
+                { val: "1D", text: "Zone 20 (Very High Protection)" },
+                { val: "2D", text: "Zone 21 (High Protection)" },
+                { val: "3D", text: "Zone 22 (Normal Protection)" }
+            ],
+            protections: {
+                "Ex t (Enclosure)": [
+                    { val: "Ex ta", text: "Protection by Enclosure (Very High - Zone 20)" },
+                    { val: "Ex tb", text: "Protection by Enclosure (High - Zone 21)" },
+                    { val: "Ex tc", text: "Protection by Enclosure (Enhanced - Zone 22)" }
+                ],
+                "Ex p (Pressurized)": [
+                    { val: "Ex pxb", text: "Pressurized Enclosure (Reduces Zone 21 to Safe Area)" },
+                    { val: "Ex pyb", text: "Pressurized Enclosure (Reduces Zone 21 to Zone 22)" },
+                    { val: "Ex pzc", text: "Pressurized Enclosure (Reduces Zone 22 to Safe Area)" }
+                ],
+                "Ex i (Intrinsic Safety)": [
+                    { val: "Ex ia", text: "Intrinsic Safety (Very High - Zone 20)" },
+                    { val: "Ex ib", text: "Intrinsic Safety (High - Zone 21)" },
+                    { val: "Ex ic", text: "Intrinsic Safety (Enhanced - Zone 22)" }
+                ],
+                "Ex m (Encapsulation)": [
+                    { val: "Ex ma", text: "Encapsulation (Very High - Zone 20)" },
+                    { val: "Ex mb", text: "Encapsulation (High - Zone 21)" },
+                    { val: "Ex mc", text: "Encapsulation (Enhanced - Zone 22)" }
+                ],
+                "Ex c (Constructional Safety)": [
+                    { val: "Ex c", text: "Constructional Safety (Non-Electrical)" }
+                ],
+                "Ex b (Control of Ignition)": [
+                    { val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }
+                ],
+                "Ex k (Liquid Immersion)": [
+                    { val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }
+                ],
+                "Ex h (Mechanical Standard)": [
+                    { val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }
+                ]
+            },
+            groups: [
+                { val: "IIIA", text: "Combustible Flyings" },
+                { val: "IIIB", text: "Non-Conductive Dust" },
+                { val: "IIIC", text: "Conductive Dust" }
+            ],
+            temps: [
+                { val: "T135°C", text: "Max Surface Temp: 135°C" },
+                { val: "T85°C", text: "Max Surface Temp: 85°C" }
+            ],
+            epls: [
+                { val: "Da", text: "EPL Da: Very High Protection (Zone 20)" },
+                { val: "Db", text: "EPL Db: High Protection (Zone 21)" },
+                { val: "Dc", text: "EPL Dc: Enhanced Protection (Zone 22)" }
+            ]
+        }
+    };
+
+    const envSelect = document.getElementById('envSelect');
+    const equipGroupSelect = document.getElementById('equipGroupSelect');
+    const catSelect = document.getElementById('catSelect');
+    const protSelect = document.getElementById('protSelect');
+    const subprotSelect = document.getElementById('subprotSelect'); 
+    const groupSelect = document.getElementById('groupSelect');
+    const tempSelect = document.getElementById('tempSelect');
+    const eplSelect = document.getElementById('eplSelect');
+    const displayPanel = document.getElementById('displayPanel');
+    const copyBtn = document.getElementById('copyBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    function populateDropdown(selectElement, optionsArray) {
+        selectElement.innerHTML = ''; 
+        optionsArray.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.val;
+            option.textContent = opt.val;
+            option.dataset.tooltip = opt.text;
+            selectElement.appendChild(option);
+        });
+        selectElement.selectedIndex = 0; 
+    }
+
+    // Initialize Main Environment & Group
+    function initializeTool() {
+        populateDropdown(equipGroupSelect, data.equipmentGroups);
+        updateDropdowns();
+    }
+
+    function updateDropdowns() {
+        const env = envSelect.value;
+        const equipGrp = equipGroupSelect.value;
+        const envData = data[env];
+
+        // Logic to switch categories based on Mining (I) vs Surface (II)
+        if (equipGrp === "I") {
+            populateDropdown(catSelect, data.miningCategories);
+        } else {
+            populateDropdown(catSelect, envData.categories);
+        }
+        
+        protSelect.innerHTML = '';
+        Object.keys(envData.protections).forEach(key => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = key;
+            protSelect.appendChild(option);
+        });
+        protSelect.selectedIndex = 0;
+
+        populateDropdown(groupSelect, envData.groups);
+        populateDropdown(tempSelect, envData.temps);
+        populateDropdown(eplSelect, envData.epls);
+
+        updateSubProtections();
+    }
+
+    function updateSubProtections() {
+        const env = envSelect.value;
+        const mainProtKey = protSelect.value;
+        const subgroupsArray = data[env].protections[mainProtKey];
+
+        populateDropdown(subprotSelect, subgroupsArray);
+        updateDisplay();
+    }
+
+    function updateDisplay() {
+        displayPanel.innerHTML = ''; 
+        
+        // Include the new equipGroupSelect in the final string
+        const selections = [equipGroupSelect, catSelect, subprotSelect, groupSelect, tempSelect, eplSelect];
+
+        selections.forEach(select => {
+            if (select && select.options.length > 0) {
+                const selectedOption = select.options[select.selectedIndex];
+                const span = document.createElement('span');
+                span.className = 'mark-segment';
+                span.textContent = selectedOption.value;
+                span.setAttribute('data-tooltip', selectedOption.dataset.tooltip);
+                displayPanel.appendChild(span);
+            }
+        });
+    }
+
+    // Event Listeners
+    envSelect.addEventListener('change', updateDropdowns);
+    equipGroupSelect.addEventListener('change', updateDropdowns);
+    catSelect.addEventListener('change', updateDisplay);
+    protSelect.addEventListener('change', updateSubProtections); 
+    subprotSelect.addEventListener('change', updateDisplay); 
+    groupSelect.addEventListener('change', updateDisplay);
+    tempSelect.addEventListener('change', updateDisplay);
+    eplSelect.addEventListener('change', updateDisplay);
+
+    // Copy Button Logic
+    copyBtn.addEventListener('click', () => {
+        const segments = Array.from(displayPanel.querySelectorAll('.mark-segment'));
+        const exString = segments.map(span => span.textContent).join(' ');
+        
+        if (!exString) return;
+
+        navigator.clipboard.writeText(exString).then(() => {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.add('success');
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.remove('success');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            copyBtn.textContent = 'Error Copying';
+        });
+    });
+
+    // Reset Button Logic
+    resetBtn.addEventListener('click', () => {
+        envSelect.selectedIndex = 0;
+        initializeTool();
+    });
+
+    // Startup
+    initializeTool();
+</script>
+
+</body>
+</html>
