@@ -64,7 +64,6 @@
             background-color: rgba(251, 192, 45, 0.3);
         }
 
-        /* Tooltip styling */
         .mark-segment::after {
             content: attr(data-tooltip);
             position: absolute;
@@ -113,7 +112,7 @@
 
         #copyBtn { background-color: #d32f2f; }
         #copyBtn:hover { background-color: #b71c1c; }
-        #copyBtn.success { background-color: #388e3c; } /* Green on success */
+        #copyBtn.success { background-color: #388e3c; }
 
         #resetBtn { background-color: #555555; }
         #resetBtn:hover { background-color: #333333; }
@@ -140,7 +139,7 @@
             font-size: 0.9rem;
         }
 
-        select {
+        select, input[type="number"] {
             background-color: #ffffff;
             color: #333333;
             border: 1px solid #cccccc;
@@ -150,9 +149,27 @@
             outline: none;
             cursor: pointer;
         }
+        
+        input[type="number"] {
+            cursor: text;
+        }
 
-        select:focus {
+        select:focus, input[type="number"]:focus {
             border-color: #d32f2f;
+        }
+
+        .temp-container {
+            display: flex;
+            width: 100%;
+        }
+
+        #tempSelect {
+            width: 100%;
+        }
+
+        #tempInput {
+            flex-grow: 1;
+            width: 50px; /* Base width before flex growth */
         }
     </style>
 </head>
@@ -161,8 +178,7 @@
 <div class="container">
     <h1>EX Marking Decoder</h1>
     
-    <div class="display-panel" id="displayPanel">
-        </div>
+    <div class="display-panel" id="displayPanel"></div>
 
     <div class="button-group">
         <button id="copyBtn" class="action-btn">Copy EX String</button>
@@ -197,10 +213,19 @@
             <label for="groupSelect">Substance Group</label>
             <select id="groupSelect"></select>
         </div>
+        
         <div class="control-group">
-            <label for="tempSelect">Temp Class</label>
-            <select id="tempSelect"></select>
+            <label>Temp Class / Value</label>
+            <div class="temp-container">
+                <select id="tempSelect"></select>
+                <div id="dustTempWrapper" style="display: none; align-items: center; gap: 5px; width: 100%;">
+                    <span style="font-weight: bold; font-size: 1.2rem; color: #d32f2f;">T</span>
+                    <input type="number" id="tempInput" placeholder="e.g. 135" min="0">
+                    <span style="font-weight: bold; font-size: 1.2rem; color: #d32f2f;">°C</span>
+                </div>
+            </div>
         </div>
+
         <div class="control-group">
             <label for="eplSelect">EPL</label>
             <select id="eplSelect"></select>
@@ -345,10 +370,6 @@
                 { val: "IIIB", text: "Non-Conductive Dust" },
                 { val: "IIIC", text: "Conductive Dust" }
             ],
-            temps: [
-                { val: "T135°C", text: "Max Surface Temp: 135°C" },
-                { val: "T85°C", text: "Max Surface Temp: 85°C" }
-            ],
             epls: [
                 { val: "Da", text: "EPL Da: Very High Protection (Zone 20)" },
                 { val: "Db", text: "EPL Db: High Protection (Zone 21)" },
@@ -363,7 +384,12 @@
     const protSelect = document.getElementById('protSelect');
     const subprotSelect = document.getElementById('subprotSelect'); 
     const groupSelect = document.getElementById('groupSelect');
+    
+    // Temp Elements
     const tempSelect = document.getElementById('tempSelect');
+    const dustTempWrapper = document.getElementById('dustTempWrapper');
+    const tempInput = document.getElementById('tempInput');
+    
     const eplSelect = document.getElementById('eplSelect');
     const displayPanel = document.getElementById('displayPanel');
     const copyBtn = document.getElementById('copyBtn');
@@ -371,6 +397,7 @@
 
     function populateDropdown(selectElement, optionsArray) {
         selectElement.innerHTML = ''; 
+        if(!optionsArray) return;
         optionsArray.forEach(opt => {
             const option = document.createElement('option');
             option.value = opt.val;
@@ -381,9 +408,9 @@
         selectElement.selectedIndex = 0; 
     }
 
-    // Initialize Main Environment & Group
     function initializeTool() {
         populateDropdown(equipGroupSelect, data.equipmentGroups);
+        tempInput.value = ''; // Clear text field on init
         updateDropdowns();
     }
 
@@ -392,7 +419,6 @@
         const equipGrp = equipGroupSelect.value;
         const envData = data[env];
 
-        // Logic to switch categories based on Mining (I) vs Surface (II)
         if (equipGrp === "I") {
             populateDropdown(catSelect, data.miningCategories);
         } else {
@@ -409,8 +435,18 @@
         protSelect.selectedIndex = 0;
 
         populateDropdown(groupSelect, envData.groups);
-        populateDropdown(tempSelect, envData.temps);
         populateDropdown(eplSelect, envData.epls);
+
+        // Toggle Temperature Input Type
+        if (env === 'gas') {
+            tempSelect.style.display = 'block';
+            dustTempWrapper.style.display = 'none';
+            populateDropdown(tempSelect, envData.temps);
+        } else {
+            tempSelect.style.display = 'none';
+            dustTempWrapper.style.display = 'flex';
+            // No need to populate tempSelect for dust
+        }
 
         updateSubProtections();
     }
@@ -424,22 +460,43 @@
         updateDisplay();
     }
 
+    // Helper function to build the visual spans
+    function addSpan(text, tooltip) {
+        if (!text) return;
+        const span = document.createElement('span');
+        span.className = 'mark-segment';
+        span.textContent = text;
+        span.setAttribute('data-tooltip', tooltip);
+        displayPanel.appendChild(span);
+    }
+
     function updateDisplay() {
         displayPanel.innerHTML = ''; 
+        const env = envSelect.value;
         
-        // Include the new equipGroupSelect in the final string
-        const selections = [equipGroupSelect, catSelect, subprotSelect, groupSelect, tempSelect, eplSelect];
-
-        selections.forEach(select => {
+        // 1. Group, Category, Subprot, Substance Group
+        const standardElements = [equipGroupSelect, catSelect, subprotSelect, groupSelect];
+        standardElements.forEach(select => {
             if (select && select.options.length > 0) {
-                const selectedOption = select.options[select.selectedIndex];
-                const span = document.createElement('span');
-                span.className = 'mark-segment';
-                span.textContent = selectedOption.value;
-                span.setAttribute('data-tooltip', selectedOption.dataset.tooltip);
-                displayPanel.appendChild(span);
+                const opt = select.options[select.selectedIndex];
+                addSpan(opt.value, opt.dataset.tooltip);
             }
         });
+
+        // 2. Temperature Logic
+        if (env === 'gas' && tempSelect.options.length > 0) {
+            const opt = tempSelect.options[tempSelect.selectedIndex];
+            addSpan(opt.value, opt.dataset.tooltip);
+        } else if (env === 'dust') {
+            const val = tempInput.value || '___';
+            addSpan(`T${val}°C`, `Exact Max Surface Temp: ${val}°C`);
+        }
+
+        // 3. EPL
+        if (eplSelect.options.length > 0) {
+            const opt = eplSelect.options[eplSelect.selectedIndex];
+            addSpan(opt.value, opt.dataset.tooltip);
+        }
     }
 
     // Event Listeners
@@ -449,10 +506,13 @@
     protSelect.addEventListener('change', updateSubProtections); 
     subprotSelect.addEventListener('change', updateDisplay); 
     groupSelect.addEventListener('change', updateDisplay);
+    
+    // Temp listeners
     tempSelect.addEventListener('change', updateDisplay);
+    tempInput.addEventListener('input', updateDisplay); // Updates instantly on type
+    
     eplSelect.addEventListener('change', updateDisplay);
 
-    // Copy Button Logic
     copyBtn.addEventListener('click', () => {
         const segments = Array.from(displayPanel.querySelectorAll('.mark-segment'));
         const exString = segments.map(span => span.textContent).join(' ');
@@ -474,7 +534,6 @@
         });
     });
 
-    // Reset Button Logic
     resetBtn.addEventListener('click', () => {
         envSelect.selectedIndex = 0;
         initializeTool();
