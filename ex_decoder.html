@@ -165,7 +165,6 @@
         #tempSelect { width: 100%; }
         #tempInput { flex-grow: 1; width: 50px; }
 
-        /* NEW: Warning Toast Styling */
         #warningToast {
             position: fixed;
             bottom: 30px;
@@ -206,35 +205,40 @@
     </div>
 
     <div class="controls">
-        <div class="control-group">
+        <div class="control-group" id="envControlGroup">
             <label for="envSelect">Environment</label>
             <select id="envSelect">
                 <option value="gas">Gas</option>
                 <option value="dust">Dust</option>
             </select>
         </div>
+        
         <div class="control-group">
             <label for="equipGroupSelect">Equipment Group</label>
             <select id="equipGroupSelect"></select>
         </div>
+        
         <div class="control-group">
             <label for="catSelect">Category & Zone</label>
             <select id="catSelect"></select>
         </div>
+        
         <div class="control-group">
             <label for="protSelect">Main Protection Type</label>
             <select id="protSelect"></select>
         </div>
+        
         <div class="control-group">
             <label for="subprotSelect">Protection Subgroup</label>
             <select id="subprotSelect"></select>
         </div>
-        <div class="control-group">
+        
+        <div class="control-group" id="substanceControlGroup">
             <label for="groupSelect">Substance Group</label>
             <select id="groupSelect"></select>
         </div>
         
-        <div class="control-group">
+        <div class="control-group" id="tempControlGroup">
             <label>Temp Class / Value</label>
             <div class="temp-container">
                 <select id="tempSelect"></select>
@@ -261,10 +265,19 @@
             { val: "II", text: "Group II (Surface Industries)" },
             { val: "I", text: "Group I (Mines susceptible to firedamp)" }
         ],
-        miningCategories: [
-            { val: "M1", text: "Category M1 (Very High Protection - Mining)" },
-            { val: "M2", text: "Category M2 (High Protection - Mining)" }
-        ],
+        mining: {
+            categories: [
+                { val: "M1", text: "Category M1 (Very High Protection - Mining)" },
+                { val: "M2", text: "Category M2 (High Protection - Mining)" }
+            ],
+            groups: [
+                { val: "I", text: "Group I (Methane / Firedamp)" }
+            ],
+            epls: [
+                { val: "Ma", text: "EPL Ma: Very High Protection (Mining)" },
+                { val: "Mb", text: "EPL Mb: High Protection (Mining)" }
+            ]
+        },
         gas: {
             categories: [
                 { val: "1G", text: "Zone 0 (Very High Protection)" },
@@ -272,113 +285,39 @@
                 { val: "3G", text: "Zone 2 (Normal Protection)" }
             ],
             protections: {
-                "Ex d (Flameproof)": [
-                    { val: "Ex db", text: "Flameproof Enclosure (High - Zone 1)" },
-                    { val: "Ex dc", text: "Flameproof Enclosure (Enhanced - Zone 2)" }
-                ],
-                "Ex e (Increased Safety)": [
-                    { val: "Ex eb", text: "Increased Safety (High - Zone 1)" },
-                    { val: "Ex ec", text: "Increased Safety (Enhanced - Zone 2)" }
-                ],
-                "Ex i (Intrinsic Safety)": [
-                    { val: "Ex ia", text: "Intrinsic Safety (Very High - Zone 0)" },
-                    { val: "Ex ib", text: "Intrinsic Safety (High - Zone 1)" },
-                    { val: "Ex ic", text: "Intrinsic Safety (Enhanced - Zone 2)" }
-                ],
-                "Ex p (Pressurized)": [
-                    { val: "Ex pxb", text: "Pressurized Enclosure (Reduces Zone 1 to Safe Area)" },
-                    { val: "Ex pyb", text: "Pressurized Enclosure (Reduces Zone 1 to Zone 2)" },
-                    { val: "Ex pzc", text: "Pressurized Enclosure (Reduces Zone 2 to Safe Area)" }
-                ],
-                "Ex m (Encapsulation)": [
-                    { val: "Ex ma", text: "Encapsulation (Very High - Zone 0)" },
-                    { val: "Ex mb", text: "Encapsulation (High - Zone 1)" },
-                    { val: "Ex mc", text: "Encapsulation (Enhanced - Zone 2)" }
-                ],
-                "Ex q (Powder Filling)": [
-                    { val: "Ex q", text: "Powder Filling (High - Zone 1)" }
-                ],
-                "Ex o (Oil Immersion)": [
-                    { val: "Ex ob", text: "Oil Immersion (High - Zone 1)" },
-                    { val: "Ex oc", text: "Oil Immersion (Enhanced - Zone 2)" }
-                ],
-                "Ex n (Type n)": [
-                    { val: "Ex nA", text: "Non-Sparking (Enhanced - Zone 2)" },
-                    { val: "Ex nC", text: "Enclosed/Sealed Devices (Enhanced - Zone 2)" },
-                    { val: "Ex nR", text: "Restricted Breathing (Enhanced - Zone 2)" }
-                ],
-                "Ex op (Optical)": [
-                    { val: "Ex op is", text: "Inherently Safe Optical (Very High - Zone 0)" },
-                    { val: "Ex op pr", text: "Protected Optical (High - Zone 1)" },
-                    { val: "Ex op sh", text: "Optical Interlock (High - Zone 1)" }
-                ],
+                "Ex d (Flameproof)": [{ val: "Ex db", text: "Flameproof Enclosure (High - Zone 1)" }, { val: "Ex dc", text: "Flameproof Enclosure (Enhanced - Zone 2)" }],
+                "Ex e (Increased Safety)": [{ val: "Ex eb", text: "Increased Safety (High - Zone 1)" }, { val: "Ex ec", text: "Increased Safety (Enhanced - Zone 2)" }],
+                "Ex i (Intrinsic Safety)": [{ val: "Ex ia", text: "Intrinsic Safety (Very High - Zone 0/20)" }, { val: "Ex ib", text: "Intrinsic Safety (High - Zone 1/21)" }, { val: "Ex ic", text: "Intrinsic Safety (Enhanced - Zone 2/22)" }],
+                "Ex p (Pressurized)": [{ val: "Ex pxb", text: "Pressurized Enclosure (High)" }, { val: "Ex pyb", text: "Pressurized Enclosure (High)" }, { val: "Ex pzc", text: "Pressurized Enclosure (Enhanced)" }],
+                "Ex m (Encapsulation)": [{ val: "Ex ma", text: "Encapsulation (Very High)" }, { val: "Ex mb", text: "Encapsulation (High)" }, { val: "Ex mc", text: "Encapsulation (Enhanced)" }],
+                "Ex q (Powder Filling)": [{ val: "Ex q", text: "Powder Filling (High - Zone 1)" }],
+                "Ex o (Oil Immersion)": [{ val: "Ex ob", text: "Oil Immersion (High - Zone 1)" }, { val: "Ex oc", text: "Oil Immersion (Enhanced - Zone 2)" }],
+                "Ex n (Type n)": [{ val: "Ex nA", text: "Non-Sparking (Enhanced - Zone 2)" }, { val: "Ex nC", text: "Enclosed/Sealed Devices (Enhanced - Zone 2)" }, { val: "Ex nR", text: "Restricted Breathing (Enhanced - Zone 2)" }],
+                "Ex op (Optical)": [{ val: "Ex op is", text: "Inherently Safe Optical" }, { val: "Ex op pr", text: "Protected Optical" }, { val: "Ex op sh", text: "Optical Interlock" }],
                 "Ex c (Constructional Safety)": [{ val: "Ex c", text: "Constructional Safety (Non-Electrical)" }],
                 "Ex b (Control of Ignition)": [{ val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }],
                 "Ex k (Liquid Immersion)": [{ val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }],
                 "Ex fr (Flow Restricting)": [{ val: "Ex fr", text: "Flow Restricting Enclosure (Non-Electrical)" }],
                 "Ex h (Mechanical Standard)": [{ val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }]
             },
-            groups: [
-                { val: "IIA", text: "Propane / Typical Gases" },
-                { val: "IIB", text: "Ethylene" },
-                { val: "IIC", text: "Acetylene & Hydrogen" }
-            ],
-            temps: [
-                { val: "T1", text: "Max Surface Temp: 450°C" },
-                { val: "T2", text: "Max Surface Temp: 300°C" },
-                { val: "T3", text: "Max Surface Temp: 200°C" },
-                { val: "T4", text: "Max Surface Temp: 135°C" },
-                { val: "T5", text: "Max Surface Temp: 100°C" },
-                { val: "T6", text: "Max Surface Temp: 85°C" }
-            ],
-            epls: [
-                { val: "Ga", text: "EPL Ga: Very High Protection (Zone 0)" },
-                { val: "Gb", text: "EPL Gb: High Protection (Zone 1)" },
-                { val: "Gc", text: "EPL Gc: Enhanced Protection (Zone 2)" }
-            ]
+            groups: [{ val: "IIA", text: "Propane / Typical Gases" }, { val: "IIB", text: "Ethylene" }, { val: "IIC", text: "Acetylene & Hydrogen" }],
+            temps: [{ val: "T1", text: "Max Surface Temp: 450°C" }, { val: "T2", text: "Max Surface Temp: 300°C" }, { val: "T3", text: "Max Surface Temp: 200°C" }, { val: "T4", text: "Max Surface Temp: 135°C" }, { val: "T5", text: "Max Surface Temp: 100°C" }, { val: "T6", text: "Max Surface Temp: 85°C" }],
+            epls: [{ val: "Ga", text: "EPL Ga: Very High Protection (Zone 0)" }, { val: "Gb", text: "EPL Gb: High Protection (Zone 1)" }, { val: "Gc", text: "EPL Gc: Enhanced Protection (Zone 2)" }]
         },
         dust: {
-            categories: [
-                { val: "1D", text: "Zone 20 (Very High Protection)" },
-                { val: "2D", text: "Zone 21 (High Protection)" },
-                { val: "3D", text: "Zone 22 (Normal Protection)" }
-            ],
+            categories: [{ val: "1D", text: "Zone 20 (Very High Protection)" }, { val: "2D", text: "Zone 21 (High Protection)" }, { val: "3D", text: "Zone 22 (Normal Protection)" }],
             protections: {
-                "Ex t (Enclosure)": [
-                    { val: "Ex ta", text: "Protection by Enclosure (Very High - Zone 20)" },
-                    { val: "Ex tb", text: "Protection by Enclosure (High - Zone 21)" },
-                    { val: "Ex tc", text: "Protection by Enclosure (Enhanced - Zone 22)" }
-                ],
-                "Ex p (Pressurized)": [
-                    { val: "Ex pxb", text: "Pressurized Enclosure (Reduces Zone 21 to Safe Area)" },
-                    { val: "Ex pyb", text: "Pressurized Enclosure (Reduces Zone 21 to Zone 22)" },
-                    { val: "Ex pzc", text: "Pressurized Enclosure (Reduces Zone 22 to Safe Area)" }
-                ],
-                "Ex i (Intrinsic Safety)": [
-                    { val: "Ex ia", text: "Intrinsic Safety (Very High - Zone 20)" },
-                    { val: "Ex ib", text: "Intrinsic Safety (High - Zone 21)" },
-                    { val: "Ex ic", text: "Intrinsic Safety (Enhanced - Zone 22)" }
-                ],
-                "Ex m (Encapsulation)": [
-                    { val: "Ex ma", text: "Encapsulation (Very High - Zone 20)" },
-                    { val: "Ex mb", text: "Encapsulation (High - Zone 21)" },
-                    { val: "Ex mc", text: "Encapsulation (Enhanced - Zone 22)" }
-                ],
+                "Ex t (Enclosure)": [{ val: "Ex ta", text: "Protection by Enclosure (Very High)" }, { val: "Ex tb", text: "Protection by Enclosure (High)" }, { val: "Ex tc", text: "Protection by Enclosure (Enhanced)" }],
+                "Ex p (Pressurized)": [{ val: "Ex pxb", text: "Pressurized Enclosure (High)" }, { val: "Ex pyb", text: "Pressurized Enclosure (High)" }, { val: "Ex pzc", text: "Pressurized Enclosure (Enhanced)" }],
+                "Ex i (Intrinsic Safety)": [{ val: "Ex ia", text: "Intrinsic Safety (Very High)" }, { val: "Ex ib", text: "Intrinsic Safety (High)" }, { val: "Ex ic", text: "Intrinsic Safety (Enhanced)" }],
+                "Ex m (Encapsulation)": [{ val: "Ex ma", text: "Encapsulation (Very High)" }, { val: "Ex mb", text: "Encapsulation (High)" }, { val: "Ex mc", text: "Encapsulation (Enhanced)" }],
                 "Ex c (Constructional Safety)": [{ val: "Ex c", text: "Constructional Safety (Non-Electrical)" }],
                 "Ex b (Control of Ignition)": [{ val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }],
                 "Ex k (Liquid Immersion)": [{ val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }],
                 "Ex h (Mechanical Standard)": [{ val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }]
             },
-            groups: [
-                { val: "IIIA", text: "Combustible Flyings" },
-                { val: "IIIB", text: "Non-Conductive Dust" },
-                { val: "IIIC", text: "Conductive Dust" }
-            ],
-            epls: [
-                { val: "Da", text: "EPL Da: Very High Protection (Zone 20)" },
-                { val: "Db", text: "EPL Db: High Protection (Zone 21)" },
-                { val: "Dc", text: "EPL Dc: Enhanced Protection (Zone 22)" }
-            ]
+            groups: [{ val: "IIIA", text: "Combustible Flyings" }, { val: "IIIB", text: "Non-Conductive Dust" }, { val: "IIIC", text: "Conductive Dust" }],
+            epls: [{ val: "Da", text: "EPL Da: Very High Protection (Zone 20)" }, { val: "Db", text: "EPL Db: High Protection (Zone 21)" }, { val: "Dc", text: "EPL Dc: Enhanced Protection (Zone 22)" }]
         }
     };
 
@@ -393,9 +332,12 @@
     const tempInput = document.getElementById('tempInput');
     const eplSelect = document.getElementById('eplSelect');
     const displayPanel = document.getElementById('displayPanel');
-    const copyBtn = document.getElementById('copyBtn');
-    const resetBtn = document.getElementById('resetBtn');
     const warningToast = document.getElementById('warningToast');
+
+    // UI Groups for toggling visibility
+    const envControlGroup = document.getElementById('envControlGroup');
+    const substanceControlGroup = document.getElementById('substanceControlGroup');
+    const tempControlGroup = document.getElementById('tempControlGroup');
 
     function populateDropdown(selectElement, optionsArray) {
         selectElement.innerHTML = ''; 
@@ -417,46 +359,74 @@
     }
 
     function updateDropdowns() {
-        const env = envSelect.value;
         const equipGrp = equipGroupSelect.value;
-        const envData = data[env];
-
-        if (equipGrp === "I") {
-            populateDropdown(catSelect, data.miningCategories);
-        } else {
-            populateDropdown(catSelect, envData.categories);
-        }
+        const env = envSelect.value;
         
-        protSelect.innerHTML = '';
-        Object.keys(envData.protections).forEach(key => {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = key;
-            protSelect.appendChild(option);
-        });
-        protSelect.selectedIndex = 0;
+        // If Mining (Group I) is selected, hide irrelevant parameters
+        if (equipGrp === "I") {
+            envControlGroup.style.display = 'none';
+            substanceControlGroup.style.display = 'none';
+            tempControlGroup.style.display = 'none';
+            
+            populateDropdown(catSelect, data.mining.categories);
+            populateDropdown(eplSelect, data.mining.epls);
+            
+            // Populate protections (reusing gas protections for structure)
+            protSelect.innerHTML = '';
+            Object.keys(data.gas.protections).forEach(key => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = key;
+                protSelect.appendChild(option);
+            });
+            protSelect.selectedIndex = 0;
 
-        populateDropdown(groupSelect, envData.groups);
-        populateDropdown(eplSelect, envData.epls);
-
-        if (env === 'gas') {
-            tempSelect.style.display = 'block';
-            dustTempWrapper.style.display = 'none';
-            populateDropdown(tempSelect, envData.temps);
         } else {
-            tempSelect.style.display = 'none';
-            dustTempWrapper.style.display = 'flex';
+            // Group II (Surface) logic
+            envControlGroup.style.display = 'flex';
+            substanceControlGroup.style.display = 'flex';
+            tempControlGroup.style.display = 'flex';
+            
+            const envData = data[env];
+            populateDropdown(catSelect, envData.categories);
+            populateDropdown(groupSelect, envData.groups);
+            populateDropdown(eplSelect, envData.epls);
+
+            protSelect.innerHTML = '';
+            Object.keys(envData.protections).forEach(key => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = key;
+                protSelect.appendChild(option);
+            });
+            protSelect.selectedIndex = 0;
+
+            if (env === 'gas') {
+                tempSelect.style.display = 'block';
+                dustTempWrapper.style.display = 'none';
+                populateDropdown(tempSelect, envData.temps);
+            } else {
+                tempSelect.style.display = 'none';
+                dustTempWrapper.style.display = 'flex';
+            }
         }
 
         updateSubProtections();
     }
 
     function updateSubProtections() {
-        const env = envSelect.value;
+        const equipGrp = equipGroupSelect.value;
+        const env = equipGrp === "I" ? "gas" : envSelect.value; // Borrow gas protections for mining
         const mainProtKey = protSelect.value;
         const subgroupsArray = data[env].protections[mainProtKey];
 
-        populateDropdown(subprotSelect, subgroupsArray);
+        // Filter out 'c' level protections if Mining is selected (Mines only use a/b)
+        let filteredSubgroups = subgroupsArray;
+        if (equipGrp === "I") {
+            filteredSubgroups = subgroupsArray.filter(opt => !opt.val.endsWith('c'));
+        }
+
+        populateDropdown(subprotSelect, filteredSubgroups);
         updateDisplay();
     }
 
@@ -469,34 +439,30 @@
         displayPanel.appendChild(span);
     }
 
-    // NEW: Validation Logic for the Weakest Link
     function validateEPL() {
+        const equipGrp = equipGroupSelect.value;
         const catVal = catSelect.options[catSelect.selectedIndex]?.value;
         const protVal = subprotSelect.options[subprotSelect.selectedIndex]?.value;
         const eplVal = eplSelect.options[eplSelect.selectedIndex]?.value;
 
-        // Map specific protections to their inherent safety rank
         const protLevelMap = {
             "Ex ia": "a", "Ex ma": "a", "Ex ta": "a", "Ex op is": "a",
             "Ex db": "b", "Ex eb": "b", "Ex ib": "b", "Ex mb": "b", "Ex pxb": "b", "Ex pyb": "b", "Ex q": "b", "Ex ob": "b", "Ex op pr": "b", "Ex op sh": "b", "Ex tb": "b",
             "Ex dc": "c", "Ex ec": "c", "Ex ic": "c", "Ex pzc": "c", "Ex mc": "c", "Ex oc": "c", "Ex nA": "c", "Ex nC": "c", "Ex nR": "c", "Ex tc": "c"
         };
 
-        // Map categories to the minimum safety rank they require
         const catLevelMap = {
             "1G": "a", "1D": "a", "M1": "a",
             "2G": "b", "2D": "b", "M2": "b",
             "3G": "c", "3D": "c"
         };
 
-        // Map EPL letters to their rank
         const eplLevelMap = {
             "Ga": "a", "Da": "a", "Ma": "a",
             "Gb": "b", "Db": "b", "Mb": "b",
             "Gc": "c", "Dc": "c", "Mc": "c"
         };
 
-        // Ranks: Higher number = safer
         const rank = { "a": 3, "b": 2, "c": 1 };
         let errorMsg = "";
 
@@ -506,19 +472,19 @@
             const selectedEpl = eplLevelMap[eplVal];
 
             if (selectedEpl && provFromProt && rank[selectedEpl] > rank[provFromProt]) {
-                // Rule 1: You can't claim a high EPL if the protection method is weak
                 errorMsg = `Hazard Mismatch: '${protVal}' only provides level '${provFromProt}' protection. It is too weak to achieve EPL '${eplVal}'.`;
             } else if (selectedEpl && reqFromCat && rank[selectedEpl] < rank[reqFromCat]) {
-                // Rule 2: You can't use a weak EPL in a strict Category/Zone
                 errorMsg = `Zone Mismatch: Category ${catVal} requires at least EPL '${reqFromCat}', but '${eplVal}' was selected.`;
+            } else if (equipGrp === "I" && selectedEpl === "c") {
+                errorMsg = `Mining limits: Group I mining environments do not use level 'c' (Enhanced) protection.`;
             }
         }
 
         if (errorMsg) {
             warningToast.textContent = "⚠️ " + errorMsg;
             warningToast.classList.add('show');
-            displayPanel.style.borderColor = "#d32f2f"; // Turn border red
-            displayPanel.style.backgroundColor = "#ffebee"; // Turn bg light red
+            displayPanel.style.borderColor = "#d32f2f"; 
+            displayPanel.style.backgroundColor = "#ffebee"; 
         } else {
             warningToast.classList.remove('show');
             displayPanel.style.borderColor = "#fbc02d"; 
@@ -528,34 +494,37 @@
 
     function updateDisplay() {
         displayPanel.innerHTML = ''; 
+        const equipGrp = equipGroupSelect.value;
         const env = envSelect.value;
         
         addSpan('<Ex>', 'Official ATEX Symbol for Explosive Atmospheres');
 
-        const standardElements = [equipGroupSelect, catSelect, subprotSelect, groupSelect];
-        standardElements.forEach(select => {
-            if (select && select.options.length > 0) {
-                const opt = select.options[select.selectedIndex];
-                addSpan(opt.value, opt.dataset.tooltip);
+        // Render string components
+        addSpan(equipGroupSelect.options[equipGroupSelect.selectedIndex]?.value, equipGroupSelect.options[equipGroupSelect.selectedIndex]?.dataset.tooltip);
+        addSpan(catSelect.options[catSelect.selectedIndex]?.value, catSelect.options[catSelect.selectedIndex]?.dataset.tooltip);
+        addSpan(subprotSelect.options[subprotSelect.selectedIndex]?.value, subprotSelect.options[subprotSelect.selectedIndex]?.dataset.tooltip);
+        
+        // Group II specific elements
+        if (equipGrp === "II") {
+            addSpan(groupSelect.options[groupSelect.selectedIndex]?.value, groupSelect.options[groupSelect.selectedIndex]?.dataset.tooltip);
+            
+            if (env === 'gas' && tempSelect.options.length > 0) {
+                addSpan(tempSelect.options[tempSelect.selectedIndex]?.value, tempSelect.options[tempSelect.selectedIndex]?.dataset.tooltip);
+            } else if (env === 'dust') {
+                const val = tempInput.value || '___';
+                addSpan(`T${val}°C`, `Exact Max Surface Temp: ${val}°C`);
             }
-        });
-
-        if (env === 'gas' && tempSelect.options.length > 0) {
-            const opt = tempSelect.options[tempSelect.selectedIndex];
-            addSpan(opt.value, opt.dataset.tooltip);
-        } else if (env === 'dust') {
-            const val = tempInput.value || '___';
-            addSpan(`T${val}°C`, `Exact Max Surface Temp: ${val}°C`);
+        } else {
+             // For mining, manually add the 'I' substance group tag
+             addSpan("I", "Group I (Methane / Firedamp)");
         }
 
-        if (eplSelect.options.length > 0) {
-            const opt = eplSelect.options[eplSelect.selectedIndex];
-            addSpan(opt.value, opt.dataset.tooltip);
-        }
+        addSpan(eplSelect.options[eplSelect.selectedIndex]?.value, eplSelect.options[eplSelect.selectedIndex]?.dataset.tooltip);
 
-        validateEPL(); // Run validation after updating display
+        validateEPL();
     }
 
+    // Event Listeners
     envSelect.addEventListener('change', updateDropdowns);
     equipGroupSelect.addEventListener('change', updateDropdowns);
     catSelect.addEventListener('change', updateDisplay);
@@ -566,25 +535,27 @@
     tempInput.addEventListener('input', updateDisplay); 
     eplSelect.addEventListener('change', updateDisplay);
 
-    copyBtn.addEventListener('click', () => {
+    document.getElementById('copyBtn').addEventListener('click', () => {
         const segments = Array.from(displayPanel.querySelectorAll('.mark-segment'));
         const exString = segments.map(span => span.textContent).join(' ');
         
         if (!exString) return;
 
         navigator.clipboard.writeText(exString).then(() => {
-            const originalText = copyBtn.textContent;
-            copyBtn.textContent = 'Copied!';
-            copyBtn.classList.add('success');
+            const btn = document.getElementById('copyBtn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            btn.classList.add('success');
             
             setTimeout(() => {
-                copyBtn.textContent = originalText;
-                copyBtn.classList.remove('success');
+                btn.textContent = originalText;
+                btn.classList.remove('success');
             }, 2000);
         });
     });
 
-    resetBtn.addEventListener('click', () => {
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        equipGroupSelect.selectedIndex = 0;
         envSelect.selectedIndex = 0;
         initializeTool();
     });
