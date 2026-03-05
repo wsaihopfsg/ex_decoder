@@ -205,20 +205,28 @@
     </div>
 
     <div class="controls">
+        <div class="control-group" id="schemeControlGroup">
+            <label for="schemeSelect">Certification Scheme</label>
+            <select id="schemeSelect">
+                <option value="ATEX">ATEX</option>
+                <option value="IECEx">IECEx</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="equipGroupSelect">Equipment Group</label>
+            <select id="equipGroupSelect"></select>
+        </div>
+
         <div class="control-group" id="envControlGroup">
             <label for="envSelect">Environment</label>
             <select id="envSelect">
                 <option value="gas">Gas</option>
                 <option value="dust">Dust</option>
             </select>
-        </div>
+        </div>        
         
-        <div class="control-group">
-            <label for="equipGroupSelect">Equipment Group</label>
-            <select id="equipGroupSelect"></select>
-        </div>
-        
-        <div class="control-group">
+        <div class="control-group" id="catControlGroup">
             <label for="catSelect">Category & Zone</label>
             <select id="catSelect"></select>
         </div>
@@ -321,6 +329,7 @@
         }
     };
 
+    const schemeSelect = document.getElementById('schemeSelect');
     const envSelect = document.getElementById('envSelect');
     const equipGroupSelect = document.getElementById('equipGroupSelect');
     const catSelect = document.getElementById('catSelect');
@@ -335,6 +344,7 @@
     const warningToast = document.getElementById('warningToast');
 
     // UI Groups for toggling visibility
+    const catControlGroup = document.getElementById('catControlGroup');
     const envControlGroup = document.getElementById('envControlGroup');
     const substanceControlGroup = document.getElementById('substanceControlGroup');
     const tempControlGroup = document.getElementById('tempControlGroup');
@@ -359,9 +369,17 @@
     }
 
     function updateDropdowns() {
+        const scheme = schemeSelect.value;
         const equipGrp = equipGroupSelect.value;
         const env = envSelect.value;
         
+        // Hide Category dropdown if IECEx
+        if (scheme === "IECEx") {
+            catControlGroup.style.display = 'none';
+        } else {
+            catControlGroup.style.display = 'flex';
+        }
+
         // If Mining (Group I) is selected, hide irrelevant parameters
         if (equipGrp === "I") {
             envControlGroup.style.display = 'none';
@@ -371,7 +389,6 @@
             populateDropdown(catSelect, data.mining.categories);
             populateDropdown(eplSelect, data.mining.epls);
             
-            // Populate protections (reusing gas protections for structure)
             protSelect.innerHTML = '';
             Object.keys(data.gas.protections).forEach(key => {
                 const option = document.createElement('option');
@@ -382,7 +399,6 @@
             protSelect.selectedIndex = 0;
 
         } else {
-            // Group II (Surface) logic
             envControlGroup.style.display = 'flex';
             substanceControlGroup.style.display = 'flex';
             tempControlGroup.style.display = 'flex';
@@ -416,11 +432,10 @@
 
     function updateSubProtections() {
         const equipGrp = equipGroupSelect.value;
-        const env = equipGrp === "I" ? "gas" : envSelect.value; // Borrow gas protections for mining
+        const env = equipGrp === "I" ? "gas" : envSelect.value;
         const mainProtKey = protSelect.value;
         const subgroupsArray = data[env].protections[mainProtKey];
 
-        // Filter out 'c' level protections if Mining is selected (Mines only use a/b)
         let filteredSubgroups = subgroupsArray;
         if (equipGrp === "I") {
             filteredSubgroups = subgroupsArray.filter(opt => !opt.val.endsWith('c'));
@@ -440,8 +455,10 @@
     }
 
     function validateEPL() {
+        const scheme = schemeSelect.value;
         const equipGrp = equipGroupSelect.value;
-        const catVal = catSelect.options[catSelect.selectedIndex]?.value;
+        // Only grab Category value if we are using ATEX
+        const catVal = scheme === "ATEX" ? catSelect.options[catSelect.selectedIndex]?.value : null;
         const protVal = subprotSelect.options[subprotSelect.selectedIndex]?.value;
         const eplVal = eplSelect.options[eplSelect.selectedIndex]?.value;
 
@@ -466,16 +483,24 @@
         const rank = { "a": 3, "b": 2, "c": 1 };
         let errorMsg = "";
 
-        if (catVal && protVal && eplVal) {
-            const reqFromCat = catLevelMap[catVal];
+        if (protVal && eplVal) {
             const provFromProt = protLevelMap[protVal];
             const selectedEpl = eplLevelMap[eplVal];
 
+            // Rule 1: Applies to both ATEX and IECEx
             if (selectedEpl && provFromProt && rank[selectedEpl] > rank[provFromProt]) {
                 errorMsg = `Hazard Mismatch: '${protVal}' only provides level '${provFromProt}' protection. It is too weak to achieve EPL '${eplVal}'.`;
-            } else if (selectedEpl && reqFromCat && rank[selectedEpl] < rank[reqFromCat]) {
-                errorMsg = `Zone Mismatch: Category ${catVal} requires at least EPL '${reqFromCat}', but '${eplVal}' was selected.`;
-            } else if (equipGrp === "I" && selectedEpl === "c") {
+            } 
+            // Rule 2: Applies ONLY to ATEX (since IECEx drops the category)
+            else if (scheme === "ATEX" && catVal) {
+                const reqFromCat = catLevelMap[catVal];
+                if (selectedEpl && reqFromCat && rank[selectedEpl] < rank[reqFromCat]) {
+                    errorMsg = `Zone Mismatch: Category ${catVal} requires at least EPL '${reqFromCat}', but '${eplVal}' was selected.`;
+                }
+            } 
+            
+            // Rule 3: Mining limit
+            if (!errorMsg && equipGrp === "I" && selectedEpl === "c") {
                 errorMsg = `Mining limits: Group I mining environments do not use level 'c' (Enhanced) protection.`;
             }
         }
@@ -494,17 +519,25 @@
 
     function updateDisplay() {
         displayPanel.innerHTML = ''; 
+        const scheme = schemeSelect.value;
         const equipGrp = equipGroupSelect.value;
         const env = envSelect.value;
         
-        addSpan('<Ex>', 'Official ATEX Symbol for Explosive Atmospheres');
+        // Render ATEX prefix if ATEX is selected
+        if (scheme === "ATEX") {
+            addSpan('<Ex>', 'Official ATEX Symbol for Explosive Atmospheres');
+        }
 
         // Render string components
         addSpan(equipGroupSelect.options[equipGroupSelect.selectedIndex]?.value, equipGroupSelect.options[equipGroupSelect.selectedIndex]?.dataset.tooltip);
-        addSpan(catSelect.options[catSelect.selectedIndex]?.value, catSelect.options[catSelect.selectedIndex]?.dataset.tooltip);
+        
+        // Render Category only if ATEX is selected
+        if (scheme === "ATEX") {
+            addSpan(catSelect.options[catSelect.selectedIndex]?.value, catSelect.options[catSelect.selectedIndex]?.dataset.tooltip);
+        }
+
         addSpan(subprotSelect.options[subprotSelect.selectedIndex]?.value, subprotSelect.options[subprotSelect.selectedIndex]?.dataset.tooltip);
         
-        // Group II specific elements
         if (equipGrp === "II") {
             addSpan(groupSelect.options[groupSelect.selectedIndex]?.value, groupSelect.options[groupSelect.selectedIndex]?.dataset.tooltip);
             
@@ -515,7 +548,6 @@
                 addSpan(`T${val}°C`, `Exact Max Surface Temp: ${val}°C`);
             }
         } else {
-             // For mining, manually add the 'I' substance group tag
              addSpan("I", "Group I (Methane / Firedamp)");
         }
 
@@ -525,6 +557,7 @@
     }
 
     // Event Listeners
+    schemeSelect.addEventListener('change', updateDropdowns);
     envSelect.addEventListener('change', updateDropdowns);
     equipGroupSelect.addEventListener('change', updateDropdowns);
     catSelect.addEventListener('change', updateDisplay);
@@ -555,6 +588,7 @@
     });
 
     document.getElementById('resetBtn').addEventListener('click', () => {
+        schemeSelect.selectedIndex = 0;
         equipGroupSelect.selectedIndex = 0;
         envSelect.selectedIndex = 0;
         initializeTool();
