@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrinsic Safety (IS) Loop Validator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+            margin-top: 0;
+        }
+
+        .status-banner {
+            text-align: center;
+            padding: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            transition: background-color 0.3s;
+            background-color: #9e9e9e; /* Default gray */
+        }
+
+        .status-banner.safe { background-color: #2e7d32; }
+        .status-banner.unsafe { background-color: #d32f2f; }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            flex: 1;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            text-align: right;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #1a73e8;
+        }
+
+        .input-group .unit {
+            width: 40px;
+            margin-left: 10px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .results-section {
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .results-section h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #495057;
+        }
+
+        .rule-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1rem;
+        }
+
+        .rule-row:last-child {
+            border-bottom: none;
+        }
+
+        .rule-name {
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 600;
+            width: 150px;
+        }
+
+        .rule-math {
+            flex: 1;
+            text-align: center;
+            color: #333;
+        }
+
+        .rule-status {
+            width: 80px;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .pass { color: #2e7d32; }
+        .fail { color: #d32f2f; }
+        .pending { color: #9e9e9e; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>IS Entity Parameter Validator</h1>
+    
+    <div id="masterStatus" class="status-banner">ENTER PARAMETERS</div>
+
+    <div class="grid-layout">
+        <div class="card">
+            <h2>1. Isolated Barrier (Source)</h2>
+            <div class="input-group">
+                <label title="Maximum Output Voltage">Voltage (Uo)</label>
+                <input type="number" id="uo" step="0.1" placeholder="25.2">
+                <span class="unit">V</span>
+            </div>
+            <div class="input-group">
+                <label title="Maximum Output Current">Current (Io)</label>
+                <input type="number" id="io" step="0.1" placeholder="93">
+                <span class="unit">mA</span>
+            </div>
+            <div class="input-group">
+                <label title="Maximum Output Power">Power (Po)</label>
+                <input type="number" id="po" step="1" placeholder="585">
+                <span class="unit">mW</span>
+            </div>
+            <div class="input-group">
+                <label title="Maximum Allowed External Capacitance">Capacitance (Co)</label>
+                <input type="number" id="co" step="0.1" placeholder="107">
+                <span class="unit">nF</span>
+            </div>
+            <div class="input-group">
+                <label title="Maximum Allowed External Inductance">Inductance (Lo)</label>
+                <input type="number" id="lo" step="0.1" placeholder="4.3">
+                <span class="unit">mH</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>2. Field Cable</h2>
+            <p style="font-size: 0.85rem; color: #666; margin-top: -10px; margin-bottom: 15px;">
+                Total calculated values for the entire run length.
+            </p>
+            <div class="input-group">
+                <label title="Total Cable Capacitance">Total Cap. (Cc)</label>
+                <input type="number" id="cc" step="0.1" placeholder="20">
+                <span class="unit">nF</span>
+            </div>
+            <div class="input-group">
+                <label title="Total Cable Inductance">Total Ind. (Lc)</label>
+                <input type="number" id="lc" step="0.01" placeholder="0.1">
+                <span class="unit">mH</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>3. Field Device (Load)</h2>
+            <div class="input-group">
+                <label title="Maximum Input Voltage">Voltage (Ui)</label>
+                <input type="number" id="ui" step="0.1" placeholder="30">
+                <span class="unit">V</span>
+            </div>
+            <div class="input-group">
+                <label title="Maximum Input Current">Current (Ii)</label>
+                <input type="number" id="ii" step="0.1" placeholder="100">
+                <span class="unit">mA</span>
+            </div>
+            <div class="input-group">
+                <label title="Maximum Input Power">Power (Pi)</label>
+                <input type="number" id="pi" step="1" placeholder="750">
+                <span class="unit">mW</span>
+            </div>
+            <div class="input-group">
+                <label title="Internal Capacitance">Capacitance (Ci)</label>
+                <input type="number" id="ci" step="0.1" placeholder="10">
+                <span class="unit">nF</span>
+            </div>
+            <div class="input-group">
+                <label title="Internal Inductance">Inductance (Li)</label>
+                <input type="number" id="li" step="0.01" placeholder="0.5">
+                <span class="unit">mH</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="results-section">
+        <h2>Validation Rules</h2>
+        
+        <div class="rule-row">
+            <span class="rule-name">Voltage (U)</span>
+            <span class="rule-math" id="math-u">Uo &le; Ui</span>
+            <span class="rule-status pending" id="status-u">--</span>
+        </div>
+        
+        <div class="rule-row">
+            <span class="rule-name">Current (I)</span>
+            <span class="rule-math" id="math-i">Io &le; Ii</span>
+            <span class="rule-status pending" id="status-i">--</span>
+        </div>
+        
+        <div class="rule-row">
+            <span class="rule-name">Power (P)</span>
+            <span class="rule-math" id="math-p">Po &le; Pi</span>
+            <span class="rule-status pending" id="status-p">--</span>
+        </div>
+        
+        <div class="rule-row">
+            <span class="rule-name">Capacitance (C)</span>
+            <span class="rule-math" id="math-c">Co &ge; Ci + Cc</span>
+            <span class="rule-status pending" id="status-c">--</span>
+        </div>
+        
+        <div class="rule-row">
+            <span class="rule-name">Inductance (L)</span>
+            <span class="rule-math" id="math-l">Lo &ge; Li + Lc</span>
+            <span class="rule-status pending" id="status-l">--</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Grab all input elements
+    const inputs = document.querySelectorAll('input[type="number"]');
+    
+    // UI Elements for output
+    const masterStatus = document.getElementById('masterStatus');
+    const elements = {
+        u: { math: document.getElementById('math-u'), status: document.getElementById('status-u') },
+        i: { math: document.getElementById('math-i'), status: document.getElementById('status-i') },
+        p: { math: document.getElementById('math-p'), status: document.getElementById('status-p') },
+        c: { math: document.getElementById('math-c'), status: document.getElementById('status-c') },
+        l: { math: document.getElementById('math-l'), status: document.getElementById('status-l') }
+    };
+
+    // Helper to format numbers cleanly
+    function fmt(val) { return Number(val).toString(); }
+
+    function evaluateSystem() {
+        // Read values (treat empty strings as NaN)
+        const vals = {};
+        inputs.forEach(input => {
+            vals[input.id] = parseFloat(input.value);
+        });
+
+        let allPass = true;
+        let anyMissing = false;
+
+        // 1. Voltage Rule: Uo <= Ui
+        if (!isNaN(vals.uo) && !isNaN(vals.ui)) {
+            const pass = vals.uo <= vals.ui;
+            elements.u.math.innerHTML = `${fmt(vals.uo)} V &le; ${fmt(vals.ui)} V`;
+            updateRowStatus(elements.u.status, pass);
+            if (!pass) allPass = false;
+        } else {
+            resetRow(elements.u, "Uo &le; Ui");
+            anyMissing = true;
+        }
+
+        // 2. Current Rule: Io <= Ii
+        if (!isNaN(vals.io) && !isNaN(vals.ii)) {
+            const pass = vals.io <= vals.ii;
+            elements.i.math.innerHTML = `${fmt(vals.io)} mA &le; ${fmt(vals.ii)} mA`;
+            updateRowStatus(elements.i.status, pass);
+            if (!pass) allPass = false;
+        } else {
+            resetRow(elements.i, "Io &le; Ii");
+            anyMissing = true;
+        }
+
+        // 3. Power Rule: Po <= Pi
+        if (!isNaN(vals.po) && !isNaN(vals.pi)) {
+            const pass = vals.po <= vals.pi;
+            elements.p.math.innerHTML = `${fmt(vals.po)} mW &le; ${fmt(vals.pi)} mW`;
+            updateRowStatus(elements.p.status, pass);
+            if (!pass) allPass = false;
+        } else {
+            resetRow(elements.p, "Po &le; Pi");
+            anyMissing = true;
+        }
+
+        // 4. Capacitance Rule: Co >= Ci + Cc
+        if (!isNaN(vals.co) && !isNaN(vals.ci) && !isNaN(vals.cc)) {
+            const totalC = vals.ci + vals.cc;
+            // Handle floating point math quirks
+            const pass = vals.co >= parseFloat(totalC.toFixed(4)); 
+            elements.c.math.innerHTML = `${fmt(vals.co)} nF &ge; (${fmt(vals.ci)} + ${fmt(vals.cc)}) nF [${fmt(totalC.toFixed(4))}]`;
+            updateRowStatus(elements.c.status, pass);
+            if (!pass) allPass = false;
+        } else {
+            resetRow(elements.c, "Co &ge; Ci + Cc");
+            anyMissing = true;
+        }
+
+        // 5. Inductance Rule: Lo >= Li + Lc
+        if (!isNaN(vals.lo) && !isNaN(vals.li) && !isNaN(vals.lc)) {
+            const totalL = vals.li + vals.lc;
+            const pass = vals.lo >= parseFloat(totalL.toFixed(4));
+            elements.l.math.innerHTML = `${fmt(vals.lo)} mH &ge; (${fmt(vals.li)} + ${fmt(vals.lc)}) mH [${fmt(totalL.toFixed(4))}]`;
+            updateRowStatus(elements.l.status, pass);
+            if (!pass) allPass = false;
+        } else {
+            resetRow(elements.l, "Lo &ge; Li + Lc");
+            anyMissing = true;
+        }
+
+        // Master Status Banner Logic
+        if (anyMissing) {
+            masterStatus.textContent = "ENTER ALL PARAMETERS";
+            masterStatus.className = "status-banner";
+        } else if (allPass) {
+            masterStatus.textContent = "SYSTEM SAFE (PASS)";
+            masterStatus.className = "status-banner safe";
+        } else {
+            masterStatus.textContent = "SYSTEM UNSAFE (FAIL)";
+            masterStatus.className = "status-banner unsafe";
+        }
+    }
+
+    function updateRowStatus(el, isPass) {
+        el.textContent = isPass ? "PASS" : "FAIL";
+        el.className = isPass ? "rule-status pass" : "rule-status fail";
+    }
+
+    function resetRow(elGroup, originalMath) {
+        elGroup.math.innerHTML = originalMath;
+        elGroup.status.textContent = "--";
+        elGroup.status.className = "rule-status pending";
+    }
+
+    // Attach event listeners to all inputs to evaluate on the fly
+    inputs.forEach(input => {
+        input.addEventListener('input', evaluateSystem);
+    });
+
+    // Optional: Pre-fill with common testing data to show how it works
+    // document.getElementById('uo').value = 25.2;
+    // document.getElementById('io').value = 93;
+    // ... uncomment and add evaluateSystem() if you want it to load with data.
+
+</script>
+</body>
+</html>
