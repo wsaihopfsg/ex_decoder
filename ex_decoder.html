@@ -46,6 +46,7 @@
             justify-content: center;
             gap: 10px;
             min-height: 50px;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .mark-segment {
@@ -150,9 +151,7 @@
             cursor: pointer;
         }
         
-        input[type="number"] {
-            cursor: text;
-        }
+        input[type="number"] { cursor: text; }
 
         select:focus, input[type="number"]:focus {
             border-color: #d32f2f;
@@ -163,13 +162,34 @@
             width: 100%;
         }
 
-        #tempSelect {
-            width: 100%;
+        #tempSelect { width: 100%; }
+        #tempInput { flex-grow: 1; width: 50px; }
+
+        /* NEW: Warning Toast Styling */
+        #warningToast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #d32f2f;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            font-weight: bold;
+            font-size: 1.1rem;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+            z-index: 1000;
+            max-width: 350px;
+            line-height: 1.4;
         }
 
-        #tempInput {
-            flex-grow: 1;
-            width: 50px; /* Base width before flex growth */
+        #warningToast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
         }
     </style>
 </head>
@@ -220,7 +240,7 @@
                 <select id="tempSelect"></select>
                 <div id="dustTempWrapper" style="display: none; align-items: center; gap: 5px; width: 100%;">
                     <span style="font-weight: bold; font-size: 1.2rem; color: #d32f2f;">T</span>
-                    <input type="number" id="tempInput" placeholder="e.g. 135" min="0">
+                    <input type="number" id="tempInput" placeholder="135" min="0">
                     <span style="font-weight: bold; font-size: 1.2rem; color: #d32f2f;">°C</span>
                 </div>
             </div>
@@ -232,6 +252,8 @@
         </div>
     </div>
 </div>
+
+<div id="warningToast">⚠️ Mismatch detected!</div>
 
 <script>
     const data = {
@@ -290,21 +312,11 @@
                     { val: "Ex op pr", text: "Protected Optical (High - Zone 1)" },
                     { val: "Ex op sh", text: "Optical Interlock (High - Zone 1)" }
                 ],
-                "Ex c (Constructional Safety)": [
-                    { val: "Ex c", text: "Constructional Safety (Non-Electrical)" }
-                ],
-                "Ex b (Control of Ignition)": [
-                    { val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }
-                ],
-                "Ex k (Liquid Immersion)": [
-                    { val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }
-                ],
-                "Ex fr (Flow Restricting)": [
-                    { val: "Ex fr", text: "Flow Restricting Enclosure (Non-Electrical)" }
-                ],
-                "Ex h (Mechanical Standard)": [
-                    { val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }
-                ]
+                "Ex c (Constructional Safety)": [{ val: "Ex c", text: "Constructional Safety (Non-Electrical)" }],
+                "Ex b (Control of Ignition)": [{ val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }],
+                "Ex k (Liquid Immersion)": [{ val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }],
+                "Ex fr (Flow Restricting)": [{ val: "Ex fr", text: "Flow Restricting Enclosure (Non-Electrical)" }],
+                "Ex h (Mechanical Standard)": [{ val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }]
             },
             groups: [
                 { val: "IIA", text: "Propane / Typical Gases" },
@@ -352,18 +364,10 @@
                     { val: "Ex mb", text: "Encapsulation (High - Zone 21)" },
                     { val: "Ex mc", text: "Encapsulation (Enhanced - Zone 22)" }
                 ],
-                "Ex c (Constructional Safety)": [
-                    { val: "Ex c", text: "Constructional Safety (Non-Electrical)" }
-                ],
-                "Ex b (Control of Ignition)": [
-                    { val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }
-                ],
-                "Ex k (Liquid Immersion)": [
-                    { val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }
-                ],
-                "Ex h (Mechanical Standard)": [
-                    { val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }
-                ]
+                "Ex c (Constructional Safety)": [{ val: "Ex c", text: "Constructional Safety (Non-Electrical)" }],
+                "Ex b (Control of Ignition)": [{ val: "Ex b", text: "Control of Ignition Source (Non-Electrical)" }],
+                "Ex k (Liquid Immersion)": [{ val: "Ex k", text: "Liquid Immersion (Non-Electrical)" }],
+                "Ex h (Mechanical Standard)": [{ val: "Ex h", text: "General Non-Electrical (ISO 80079-36 Standard)" }]
             },
             groups: [
                 { val: "IIIA", text: "Combustible Flyings" },
@@ -384,16 +388,14 @@
     const protSelect = document.getElementById('protSelect');
     const subprotSelect = document.getElementById('subprotSelect'); 
     const groupSelect = document.getElementById('groupSelect');
-    
-    // Temp Elements
     const tempSelect = document.getElementById('tempSelect');
     const dustTempWrapper = document.getElementById('dustTempWrapper');
     const tempInput = document.getElementById('tempInput');
-    
     const eplSelect = document.getElementById('eplSelect');
     const displayPanel = document.getElementById('displayPanel');
     const copyBtn = document.getElementById('copyBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const warningToast = document.getElementById('warningToast');
 
     function populateDropdown(selectElement, optionsArray) {
         selectElement.innerHTML = ''; 
@@ -410,7 +412,7 @@
 
     function initializeTool() {
         populateDropdown(equipGroupSelect, data.equipmentGroups);
-        tempInput.value = ''; // Clear text field on init
+        tempInput.value = ''; 
         updateDropdowns();
     }
 
@@ -437,7 +439,6 @@
         populateDropdown(groupSelect, envData.groups);
         populateDropdown(eplSelect, envData.epls);
 
-        // Toggle Temperature Input Type
         if (env === 'gas') {
             tempSelect.style.display = 'block';
             dustTempWrapper.style.display = 'none';
@@ -445,7 +446,6 @@
         } else {
             tempSelect.style.display = 'none';
             dustTempWrapper.style.display = 'flex';
-            // No need to populate tempSelect for dust
         }
 
         updateSubProtections();
@@ -460,7 +460,6 @@
         updateDisplay();
     }
 
-    // Helper function to build the visual spans
     function addSpan(text, tooltip) {
         if (!text) return;
         const span = document.createElement('span');
@@ -470,11 +469,69 @@
         displayPanel.appendChild(span);
     }
 
+    // NEW: Validation Logic for the Weakest Link
+    function validateEPL() {
+        const catVal = catSelect.options[catSelect.selectedIndex]?.value;
+        const protVal = subprotSelect.options[subprotSelect.selectedIndex]?.value;
+        const eplVal = eplSelect.options[eplSelect.selectedIndex]?.value;
+
+        // Map specific protections to their inherent safety rank
+        const protLevelMap = {
+            "Ex ia": "a", "Ex ma": "a", "Ex ta": "a", "Ex op is": "a",
+            "Ex db": "b", "Ex eb": "b", "Ex ib": "b", "Ex mb": "b", "Ex pxb": "b", "Ex pyb": "b", "Ex q": "b", "Ex ob": "b", "Ex op pr": "b", "Ex op sh": "b", "Ex tb": "b",
+            "Ex dc": "c", "Ex ec": "c", "Ex ic": "c", "Ex pzc": "c", "Ex mc": "c", "Ex oc": "c", "Ex nA": "c", "Ex nC": "c", "Ex nR": "c", "Ex tc": "c"
+        };
+
+        // Map categories to the minimum safety rank they require
+        const catLevelMap = {
+            "1G": "a", "1D": "a", "M1": "a",
+            "2G": "b", "2D": "b", "M2": "b",
+            "3G": "c", "3D": "c"
+        };
+
+        // Map EPL letters to their rank
+        const eplLevelMap = {
+            "Ga": "a", "Da": "a", "Ma": "a",
+            "Gb": "b", "Db": "b", "Mb": "b",
+            "Gc": "c", "Dc": "c", "Mc": "c"
+        };
+
+        // Ranks: Higher number = safer
+        const rank = { "a": 3, "b": 2, "c": 1 };
+        let errorMsg = "";
+
+        if (catVal && protVal && eplVal) {
+            const reqFromCat = catLevelMap[catVal];
+            const provFromProt = protLevelMap[protVal];
+            const selectedEpl = eplLevelMap[eplVal];
+
+            if (selectedEpl && provFromProt && rank[selectedEpl] > rank[provFromProt]) {
+                // Rule 1: You can't claim a high EPL if the protection method is weak
+                errorMsg = `Hazard Mismatch: '${protVal}' only provides level '${provFromProt}' protection. It is too weak to achieve EPL '${eplVal}'.`;
+            } else if (selectedEpl && reqFromCat && rank[selectedEpl] < rank[reqFromCat]) {
+                // Rule 2: You can't use a weak EPL in a strict Category/Zone
+                errorMsg = `Zone Mismatch: Category ${catVal} requires at least EPL '${reqFromCat}', but '${eplVal}' was selected.`;
+            }
+        }
+
+        if (errorMsg) {
+            warningToast.textContent = "⚠️ " + errorMsg;
+            warningToast.classList.add('show');
+            displayPanel.style.borderColor = "#d32f2f"; // Turn border red
+            displayPanel.style.backgroundColor = "#ffebee"; // Turn bg light red
+        } else {
+            warningToast.classList.remove('show');
+            displayPanel.style.borderColor = "#fbc02d"; 
+            displayPanel.style.backgroundColor = "#fffde7"; 
+        }
+    }
+
     function updateDisplay() {
         displayPanel.innerHTML = ''; 
         const env = envSelect.value;
         
-        // 1. Group, Category, Subprot, Substance Group
+        addSpan('<Ex>', 'Official ATEX Symbol for Explosive Atmospheres');
+
         const standardElements = [equipGroupSelect, catSelect, subprotSelect, groupSelect];
         standardElements.forEach(select => {
             if (select && select.options.length > 0) {
@@ -483,7 +540,6 @@
             }
         });
 
-        // 2. Temperature Logic
         if (env === 'gas' && tempSelect.options.length > 0) {
             const opt = tempSelect.options[tempSelect.selectedIndex];
             addSpan(opt.value, opt.dataset.tooltip);
@@ -492,25 +548,22 @@
             addSpan(`T${val}°C`, `Exact Max Surface Temp: ${val}°C`);
         }
 
-        // 3. EPL
         if (eplSelect.options.length > 0) {
             const opt = eplSelect.options[eplSelect.selectedIndex];
             addSpan(opt.value, opt.dataset.tooltip);
         }
+
+        validateEPL(); // Run validation after updating display
     }
 
-    // Event Listeners
     envSelect.addEventListener('change', updateDropdowns);
     equipGroupSelect.addEventListener('change', updateDropdowns);
     catSelect.addEventListener('change', updateDisplay);
     protSelect.addEventListener('change', updateSubProtections); 
     subprotSelect.addEventListener('change', updateDisplay); 
     groupSelect.addEventListener('change', updateDisplay);
-    
-    // Temp listeners
     tempSelect.addEventListener('change', updateDisplay);
-    tempInput.addEventListener('input', updateDisplay); // Updates instantly on type
-    
+    tempInput.addEventListener('input', updateDisplay); 
     eplSelect.addEventListener('change', updateDisplay);
 
     copyBtn.addEventListener('click', () => {
@@ -528,9 +581,6 @@
                 copyBtn.textContent = originalText;
                 copyBtn.classList.remove('success');
             }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            copyBtn.textContent = 'Error Copying';
         });
     });
 
@@ -539,7 +589,6 @@
         initializeTool();
     });
 
-    // Startup
     initializeTool();
 </script>
 
